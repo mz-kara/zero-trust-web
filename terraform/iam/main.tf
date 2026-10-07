@@ -73,16 +73,6 @@ resource "aws_iam_role" "oidc-github-role" {
     }
 }
 
-resource "aws_iam_policy" "oidc-github-policy" {
-    name        = "ajout"
-    description = ""
-    policy      = data.aws_iam_policy_document.ssm-policy.json
-
-    tags = {
-        Name = "lab03-s3-read-policy"
-    }
-}
-
 resource "aws_iam_role_policy_attachment" "oidc-github-role-attachement" {
   role       = aws_iam_role.oidc-github-role.name
   policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
@@ -99,9 +89,10 @@ terraform {
 
   backend "s3" {
     bucket = "mehmed-tfstate-2026"
-    key = "zero_trust_web/terraform.tfstate"
+    key = "iam/terraform.tfstate"
     region = "eu-west-3"
     encrypt = true
+    use_lockfile = true
   }
 }
 

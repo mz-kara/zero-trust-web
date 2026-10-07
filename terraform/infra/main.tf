@@ -9,9 +9,10 @@ terraform {
 
   backend "s3" {
     bucket = "mehmed-tfstate-2026"
-    key = "zero_trust_web/terraform.tfstate"
+    key = "infra/terraform.tfstate"
     region = "eu-west-3"
     encrypt = true
+    use_lockfile = true
   }
 }
 
