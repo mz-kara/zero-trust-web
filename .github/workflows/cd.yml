@@ -24,6 +24,14 @@ jobs:
           echo "Repo: ${{ github.repository }}"
           echo "Ref: ${{ github.ref }}"
           echo "Event: ${{ github.event_name }}"
+          
+      - name: Debug token claims
+        run: |
+          echo "sub attendu par AWS: repo:mz-kara/zero-trust-web:ref:refs/heads/main"
+          echo "repository: ${{ github.repository }}"
+          echo "ref: ${{ github.ref }}"
+          echo "ref_type: ${{ github.ref_type }}"
+          echo "workflow_ref: ${{ github.workflow_ref }}"
 
       - name: Checkout
         uses: actions/checkout@v4
