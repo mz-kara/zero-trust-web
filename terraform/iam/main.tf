@@ -36,33 +36,6 @@ resource "aws_iam_instance_profile" "ec2-profile" {
 
 ################# IAM for Github #################
 
-data "aws_iam_policy_document" "ssm-policy" {
-  statement {
-      effect = "Allow"
-      actions = [
-          "ssm:SendCommand",
-          "ssm:GetCommandInvocation"
-      ]
-      resources = [
-          "arn:aws:ec2:*:*:instance/*",
-          "arn:aws:ssm:*:*:document/*"
-      ]
-  }
-
-  statement {
-    effect = "Allow"
-    actions = [
-      "s3:ListBucket",
-      "s3:GetObject",
-      "s3:PutObject"
-    ]
-    resources = [
-      "arn:aws:s3:::mehmed-tfstate-2026",
-      "arn:aws:s3:::mehmed-tfstate-2026/*"
-    ]
-  }
-}
-
 resource "aws_iam_openid_connect_provider" "github" {
     url = "https://token.actions.githubusercontent.com"
     client_id_list = ["sts.amazonaws.com"]
@@ -111,8 +84,8 @@ resource "aws_iam_policy" "oidc-github-policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "oidc-github-role-attachement" {
-    role       = aws_iam_role.oidc-github-role.name
-    policy_arn = aws_iam_policy.oidc-github-policy.arn
+  role       = aws_iam_role.oidc-github-role.name
+  policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
 
 terraform {
