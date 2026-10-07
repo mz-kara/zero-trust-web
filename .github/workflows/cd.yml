@@ -29,19 +29,19 @@ jobs:
       - name: AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          rote-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
+          role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
           aws-region: "eu-west-3"
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Format Terraform
-        run: terraform fmt -check
+        run: terraform fmt
+
+      - name: Validate Terraform
+        run: terraform validate
 
       - name: Init Terraform
-        run: terraform init
-
-      - name: Validate Terraform code
         run: terraform init
 
       - name: Plan Terraform
