@@ -13,3 +13,6 @@ cd.yml :
 ## liens
 
 https://blog.stephane-robert.info/docs/infra-as-code/provisionnement/terraform/aws/iam-role-policy-instance-profile/
+https://github.com/kCn3333/aws-devops
+https://github.com/aws-actions/configure-aws-credentials
+test
