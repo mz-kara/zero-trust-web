@@ -30,6 +30,6 @@ jobs:
             - name: SSM Command
               run: |
                 aws ssm send-command \
-                    --instance-ids i-0bcaf786ddcc7dacd \
+                    --instance-ids i-055365b435f7a60f9 \
                     --document-name "AWS-RunShellScript" \
                     --parameters 'commands=["cd /home/ubuntu/app && git pull && docker compose up -d --build"]'
