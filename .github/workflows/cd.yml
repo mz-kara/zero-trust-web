@@ -49,13 +49,14 @@ jobs:
         run: terraform fmt
         working-directory: ./terraform/infra
 
+      - name: Init Terraform
+        run: terraform init
+        working-directory: ./terraform/infra
+
       - name: Validate Terraform
         run: terraform validate
         working-directory: ./terraform/infra
 
-      - name: Init Terraform
-        run: terraform init
-        working-directory: ./terraform/infra
 
       - name: Plan Terraform
         run: terraform plan
