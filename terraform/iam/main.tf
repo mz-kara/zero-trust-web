@@ -1,9 +1,9 @@
 ################# IAM for EC2 SSM #################
 
 resource "aws_iam_role" "ec2-ssm-role" {
-    name = "ssm-role"
+  name = "ssm-role"
 
-    assume_role_policy = jsonencode({
+  assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -24,8 +24,8 @@ resource "aws_iam_role" "ec2-ssm-role" {
 }
 
 resource "aws_iam_role_policy_attachment" "ssm-role-attachement" {
-    role       = aws_iam_role.ec2-ssm-role.name
-    policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  role       = aws_iam_role.ec2-ssm-role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_instance_profile" "ec2-profile" {
@@ -37,40 +37,38 @@ resource "aws_iam_instance_profile" "ec2-profile" {
 ################# IAM for Github #################
 
 resource "aws_iam_openid_connect_provider" "github" {
-    url = "https://token.actions.githubusercontent.com"
-    client_id_list = ["sts.amazonaws.com"]
-    thumbprint_list = [ "6938fd4d98bab03faadb97b34396831e3780aea1" ]
+  url             = "https://token.actions.githubusercontent.com"
+  client_id_list  = ["sts.amazonaws.com"]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
 resource "aws_iam_role" "oidc-github-role" {
-    name = var.role_name
+  name = var.role_name
 
-    assume_role_policy = jsonencode({
-        Version = "2012-10-17"
-        Statement = [
-        {
-            Action = "sts:AssumeRoleWithWebIdentity"
-            Effect = "Allow"
-            Sid    = ""
-            Principal = {
-                Federated = aws_iam_openid_connect_provider.github.arn
-            }
-            Condition = {
-            "StringEquals" = {
-                "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            }
-            "StringLike" = {
-                "token.actions.githubusercontent.com:sub" = "repo:mz-kara/zero-trust-web:ref:refs/heads/main"
-            }
-            }
-
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Effect = "Allow"
+        Sid    = ""
+        Principal = {
+          Federated = aws_iam_openid_connect_provider.github.arn
         }
-        ]
-    })
+        Condition = {
+          "StringLike" = {
+            "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
+            "token.actions.githubusercontent.com:sub" = "repo:mz-kara/zero-trust-web:*"
+          }
+        }
 
-    tags = {
-        tag-key = var.role_name
-    }
+      }
+    ]
+  })
+
+  tags = {
+    tag-key = var.role_name
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "oidc-github-role-attachement" {
@@ -88,10 +86,10 @@ terraform {
   required_version = ">= 1.2"
 
   backend "s3" {
-    bucket = "mehmed-tfstate-2026"
-    key = "iam/terraform.tfstate"
-    region = "eu-west-3"
-    encrypt = true
+    bucket       = "mehmed-tfstate-2026"
+    key          = "iam/terraform.tfstate"
+    region       = "eu-west-3"
+    encrypt      = true
     use_lockfile = true
   }
 }

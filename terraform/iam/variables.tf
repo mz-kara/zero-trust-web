@@ -19,7 +19,7 @@ variable "role_name" {
 }
 
 variable "aws_region" {
-  type = string
+  type        = string
   description = "Region of AWS account"
-  default = "eu-west-3"
+  default     = "eu-west-3"
 }
