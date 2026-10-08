@@ -32,10 +32,6 @@ jobs:
           echo "ref: ${{ github.ref }}"
           echo "ref_type: ${{ github.ref_type }}"
           echo "workflow_ref: ${{ github.workflow_ref }}"
-          
-      - uses: github/actions-oidc-debugger@main
-        with:
-          audience: sts.amazonaws.com
 
       - name: Checkout
         uses: actions/checkout@v4
