@@ -58,7 +58,7 @@ export default function App() {
   // Ecran de connexion.
   return (
     <div className="card">
-      <h1>Connexion</h1>
+      <h1>Connexion à votre compte</h1>
       <form onSubmit={handleLogin}>
         <label>
           Identifiant
