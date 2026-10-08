@@ -16,11 +16,15 @@ resource "aws_instance" "prod-server" {
   vpc_security_group_ids = [aws_security_group.allow_web.id]
 
   user_data = <<-EOF
-            #!/bin/bash
-            apt-get update -y
-            apt-get install -y docker.io awscli
-            systemctl enable --now docker
-            EOF
+              #!/bin/bash
+              apt-get update -y
+              apt-get install -y docker.io unzip curl
+              systemctl enable --now docker
+              curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+              unzip -q /tmp/awscliv2.zip -d /tmp
+              /tmp/aws/install
+              EOF
+
 
   tags = {
     Name = "web-server"
