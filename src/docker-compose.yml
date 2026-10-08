@@ -1,0 +1,24 @@
+# ===========================================================================
+# docker-compose : lance le backend ET le frontend ensemble, en une commande.
+# ===========================================================================
+# Usage :  docker compose up --build
+# Ensuite : frontend sur http://localhost:8081, backend sur http://localhost:8080
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      # Ici on pourrait injecter les identifiants comme variables d'env.
+      # (En production, ces valeurs viendront de Secrets Manager.)
+      APP_AUTH_USERNAME: admin
+      # hash de 'motdepasse123'
+      APP_AUTH_PASSWORD_HASH: "$$2b$$10$$IznbTjYdhUb7MLfy9XJhTunDkNt6Ia96RblEhsCb9GxW.ReD/yv.O"
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend

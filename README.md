@@ -15,4 +15,4 @@ cd.yml :
 https://blog.stephane-robert.info/docs/infra-as-code/provisionnement/terraform/aws/iam-role-policy-instance-profile/
 https://github.com/kCn3333/aws-devops
 https://github.com/aws-actions/configure-aws-credentials
-test
+https://github.blog/changelog/2026-04-23-immutable-subject-claims-for-GitHub-actions-oidc-tokens/ (mettre les id de ORG et du depot github dans le role de git)

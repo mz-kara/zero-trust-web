@@ -1,0 +1,15 @@
+# Dependances et builds
+node_modules/
+dist/
+target/
+
+# Fichiers d'environnement / secrets (ne JAMAIS committer)
+.env
+*.tfvars
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Divers
+.DS_Store
+*.log

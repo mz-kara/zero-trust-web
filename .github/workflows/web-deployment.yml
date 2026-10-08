@@ -1,0 +1,35 @@
+name: Web Deployment
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - 'src/**'
+            - '.github/workflows/web-deployment.yml'
+    workflow_dispatch:
+
+jobs:
+    deploy:
+        name: Deploy Web Application
+        runs-on: ubuntu-latest
+
+        permissions:
+            id-token: write
+            contents: read
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: AWS credentials
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
+                  aws-region: "eu-west-3"
+
+            - name: SSM Command
+              run: |
+                aws ssm send-command \
+                    --instance-ids i-0bcaf786ddcc7dacd \
+                    --document-name "AWS-RunShellScript" \
+                    --parameters 'commands=["cd /home/ubuntu/app && git pull && docker compose up -d --build"]'
