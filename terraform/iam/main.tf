@@ -58,7 +58,7 @@ resource "aws_iam_role" "oidc-github-role" {
         Condition = {
           "StringLike" = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com",
-            "token.actions.githubusercontent.com:sub" = "repo:mz-kara/zero-trust-web:*"
+            "token.actions.githubusercontent.com:sub" = "repo:mz-kara@181579443/zero-trust-web@1343839249:*"
           }
         }
 
