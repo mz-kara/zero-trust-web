@@ -27,9 +27,30 @@ jobs:
                   role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
                   aws-region: "eu-west-3"
 
-            - name: SSM Command
+            - name: Login ECR
+              uses: aws-actions/amazon-ecr-login@v2
+
+            - name: Build et push les images
               run: |
+                docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest ./src/backend
+                docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest
+                docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest ./src/frontend
+                docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest
+
+            - name: Déployer via SSM
+              run: |
+                INSTANCE_ID=$(aws ec2 describe-instances \
+                  --filters "Name=tag:Name,Values=web-server" "Name=instance-state-name,Values=running" \
+                  --query "Reservations[].Instances[].InstanceId" --output text)
                 aws ssm send-command \
-                    --instance-ids i-055365b435f7a60f9 \
-                    --document-name "AWS-RunShellScript" \
-                    --parameters 'commands=["cd /home/ubuntu/app && git pull && docker compose up -d --build"]'
+                  --instance-ids $INSTANCE_ID \
+                  --document-name "AWS-RunShellScript" \
+                  --parameters 'commands=[
+                  "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 594161137006.dkr.ecr.eu-west-3.amazonaws.com",
+                  "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
+                  "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest",
+                  "docker stop backend frontend || true",
+                  "docker rm backend frontend || true",
+                  "docker run -d --name backend -p 8080:8080 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
+                  "docker run -d --name frontend -p 80:80 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest"
+                  ]'

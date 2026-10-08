@@ -31,3 +31,11 @@ resource "aws_instance" "prod-server" {
   }
 
 }
+
+resource "aws_ecr_repository" "backend-repo" {
+  name = "backend-repo"
+}
+
+resource "aws_ecr_repository" "frontend-repo" {
+  name = "frontend-repo"
+}
