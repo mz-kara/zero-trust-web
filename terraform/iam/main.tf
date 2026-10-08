@@ -76,6 +76,19 @@ resource "aws_iam_role_policy_attachment" "oidc-github-role-attachement" {
   policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
 
+resource "aws_iam_role_policy" "oidc-github-passrole" {
+  name = "allow-passrole-ssm"
+  role = aws_iam_role.oidc-github-role.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "iam:PassRole"
+      Resource = "arn:aws:iam::594161137006:role/ssm-role"
+    }]
+  })
+}
+
 terraform {
   required_providers {
     aws = {
