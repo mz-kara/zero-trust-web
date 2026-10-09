@@ -115,5 +115,14 @@ jobs:
           with:
             target: 'http://${{ needs.deploy.outputs.ip }}' 
             fail_action: false
-            artifact_name: zap_scan
             allow_issue_writing: false
+
+        - name: Upload rapport DAST
+          uses: actions/upload-artifact@v4
+          with:
+            name: dast-report
+            path: |
+              report_html.html
+              report_md.md
+              report_json.json
+          if: always()
