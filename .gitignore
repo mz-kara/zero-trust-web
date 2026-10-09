@@ -1,0 +1,13 @@
+# Providers téléchargés par terraform init
+**/.terraform/
+
+# State local et ses sauvegardes
+*.tfstate
+*.tfstate.*
+
+# Plans sauvegardés et logs de crash
+*.tfplan
+crash.log
+crash.*.log
+
+**/.terraform.lock.hcl
