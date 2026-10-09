@@ -9,57 +9,108 @@ on:
     workflow_dispatch:
 
 jobs:
+    sast:
+      name: Scan SAST
+      runs-on: ubuntu-latest
+
+      permissions:
+        security-events: write
+        contents: read
+      
+      steps:
+        - uses: actions/checkout@v4
+        - name: Scan SAST
+          uses: returntocorp/semgrep-action@v1
+          with:
+            config: "auto"
+          
+        - name: Upload Artefact
+          uses: actions/upload-artifact@v4
+          with:
+            name: reports
+            path: reports
+
     deploy:
         name: Deploy Web Application
         runs-on: ubuntu-latest
+        needs: sast
 
         permissions:
-            id-token: write
-            contents: read
+          id-token: write
+          contents: read
+
+        outputs:
+          ip: ${{steps.get_id.outputs.ip}}
 
         steps:
-            - name: Checkout
-              uses: actions/checkout@v4
+          - name: Checkout
+            uses: actions/checkout@v4
 
-            - name: AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
-                  aws-region: "eu-west-3"
+          - name: AWS credentials
+            uses: aws-actions/configure-aws-credentials@v4
+            with:
+                role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
+                aws-region: "eu-west-3"
 
-            - name: Login ECR
-              uses: aws-actions/amazon-ecr-login@v2
+          - name: Login ECR
+            uses: aws-actions/amazon-ecr-login@v2
 
-            - name: Build et push les images
-              run: |
-                docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest ./src/backend
-                docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest
-                docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest ./src/frontend
-                docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest
+          - name: Build et push les images
+            run: |
+              docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest ./src/backend
+              docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest
+              docker build -t 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest ./src/frontend
+              docker push 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest
 
-            - name: Deploy sur EC2 via SSM
-              run: |
-                ID=$(aws ec2 describe-instances \
+          - name: Deploy sur EC2 via SSM
+            run: |
+              ID=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=web-server" "Name=instance-state-name,Values=running" \
+              --query "Reservations[0].Instances[0].InstanceId" --output text)
+
+              aws ec2 wait instance-status-ok --instance-ids "$ID"
+
+              CMD_ID=$(aws ssm send-command \
+              --instance-ids "$ID" \
+              --document-name "AWS-RunShellScript" \
+              --parameters '{"commands":[
+                  "cloud-init status --wait",
+                  "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 594161137006.dkr.ecr.eu-west-3.amazonaws.com",
+                  "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
+                  "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest",
+                  "docker network create app-net || true",
+                  "docker rm -f backend frontend || true",
+                  "docker run -d --name backend --network app-net --restart unless-stopped -p 8080:8080 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
+                  "docker run -d --name frontend --network app-net --restart unless-stopped -p 80:80 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest"
+              ]}' \
+              --query "Command.CommandId" --output text)
+
+              aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$ID" \
+              || { aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$ID" \
+                      --query "[Status,StandardErrorContent]" --output text; exit 1; }
+
+          - name: Récupérer l'IP publique
+            id: get_ip
+            run: |
+              IP=$(aws ec2 describe-instances \
                 --filters "Name=tag:Name,Values=web-server" "Name=instance-state-name,Values=running" \
-                --query "Reservations[0].Instances[0].InstanceId" --output text)
+                --query "Reservations[].Instances[].PublicIpAddress" \
+                --output text)
+              echo "ip=$IP" >> $GITHUB_OUTPUT
+              echo "IP trouvée: $IP"
 
-                aws ec2 wait instance-status-ok --instance-ids "$ID"
+    dast:
+      name: Scan DAST
+      runs-on: ubuntu-latest
+      needs: deploy
 
-                CMD_ID=$(aws ssm send-command \
-                --instance-ids "$ID" \
-                --document-name "AWS-RunShellScript" \
-                --parameters '{"commands":[
-                    "cloud-init status --wait",
-                    "aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin 594161137006.dkr.ecr.eu-west-3.amazonaws.com",
-                    "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
-                    "docker pull 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest",
-                    "docker network create app-net || true",
-                    "docker rm -f backend frontend || true",
-                    "docker run -d --name backend --network app-net --restart unless-stopped -p 8080:8080 594161137006.dkr.ecr.eu-west-3.amazonaws.com/backend-repo:latest",
-                    "docker run -d --name frontend --network app-net --restart unless-stopped -p 80:80 594161137006.dkr.ecr.eu-west-3.amazonaws.com/frontend-repo:latest"
-                ]}' \
-                --query "Command.CommandId" --output text)
+      permissions:
+        security-events: write
+        contents: read
 
-                aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$ID" \
-                || { aws ssm get-command-invocation --command-id "$CMD_ID" --instance-id "$ID" \
-                        --query "[Status,StandardErrorContent]" --output text; exit 1; }
+      steps:
+        - name: Scan deployed web Application
+          uses: zaproxy/action-baseline@v0.12.0
+          with:
+            target: 'http://${{ needs.deploy.outputs.ip }}' 
+            fail_action: false
