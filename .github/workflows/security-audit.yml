@@ -1,0 +1,32 @@
+name: Security Audit (Prowler)
+
+on:
+  workflow_dispatch:        # lancement manuel
+  schedule:
+    - cron: '0 6 * * 1'     # tous les lundis à 6h
+
+jobs:
+  prowler:
+    name: Prowler AWS audit
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::594161137006:role/oidc-github-role
+          aws-region: eu-west-3
+
+      - name: Run Prowler
+        run: |
+          pip install prowler
+          prowler aws --output-formats html --output-directory ./prowler-output || true
+
+      - name: Upload rapport Prowler
+        uses: actions/upload-artifact@v4
+        with:
+          name: prowler-report
+          path: ./prowler-output
+          if: always()

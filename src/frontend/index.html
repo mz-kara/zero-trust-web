@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coffre de notes</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --card: #1a2230;
+      --accent: #38bdf8;
+      --text: #e5e9f0;
+      --muted: #8b98a9;
+      --danger: #ef4444;
+      --border: #2a3444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .wrap { width: 100%; max-width: 440px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.4);
+    }
+    h1 { font-size: 24px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+    input, textarea {
+      width: 100%;
+      padding: 11px 13px;
+      background: #0f1620;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 70px; }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 18px;
+      background: var(--accent);
+      color: #06121c;
+      border: none;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button:hover { opacity: .9; }
+    button.ghost { background: transparent; color: var(--accent); margin-top: 10px; font-weight: 500; }
+    .msg { font-size: 13px; margin-top: 14px; min-height: 18px; }
+    .msg.err { color: var(--danger); }
+    .msg.ok { color: var(--accent); }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .topbar button { width: auto; margin: 0; padding: 7px 14px; background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; font-size: 13px; }
+    .note {
+      background: #0f1620;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .note p { font-size: 14px; white-space: pre-wrap; word-break: break-word; flex: 1; }
+    .note small { color: var(--muted); font-size: 11px; display: block; margin-top: 6px; }
+    .note .del { width: auto; margin: 0; padding: 4px 9px; background: transparent; color: var(--danger); border: 1px solid var(--border); font-size: 12px; }
+    .hidden { display: none; }
+    .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- ECRAN AUTH -->
+    <div id="auth" class="card">
+      <h1>🔐 Coffre de notes</h1>
+      <p class="sub">Vos notes privees, derriere un login.</p>
+      <label>Identifiant</label>
+      <input id="username" autocomplete="username" />
+      <label>Mot de passe</label>
+      <input id="password" type="password" autocomplete="current-password" />
+      <button onclick="login()">Se connecter</button>
+      <button class="ghost" onclick="register()">Creer un compte</button>
+      <div id="authMsg" class="msg"></div>
+    </div>
+
+    <!-- ECRAN COFFRE -->
+    <div id="vault" class="card hidden">
+      <div class="topbar">
+        <h1>🔐 Mon coffre</h1>
+        <button onclick="logout()">Deconnexion</button>
+      </div>
+      <label>Nouvelle note</label>
+      <textarea id="noteContent" placeholder="Ecrivez quelque chose de secret..."></textarea>
+      <button onclick="addNote()">Ajouter</button>
+      <div id="vaultMsg" class="msg"></div>
+      <div id="notes"></div>
+    </div>
+
+  </div>
+
+  <script>
+    // L'URL de l'API. En local : localhost:8080.
+    // En production : remplacee au deploiement par l'IP/domaine du serveur.
+    const API = "/api";
+
+    function token() { return localStorage.getItem("token"); }
+    function setMsg(id, text, ok) {
+      const el = document.getElementById(id);
+      el.textContent = text;
+      el.className = "msg " + (ok ? "ok" : "err");
+    }
+
+    async function register() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      const r = await fetch(API + "/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json();
+      if (r.ok) setMsg("authMsg", "Compte cree, vous pouvez vous connecter.", true);
+      else setMsg("authMsg", data.error || "Erreur", false);
+    }
+
+    async function login() {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      try {
+        const r = await fetch(API + "/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await r.json();
+        if (r.ok) {
+          localStorage.setItem("token", data.token);
+          showVault();
+        } else {
+          setMsg("authMsg", data.error || "Erreur", false);
+        }
+      } catch (e) {
+        setMsg("authMsg", "Impossible de joindre le serveur.", false);
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      document.getElementById("vault").classList.add("hidden");
+      document.getElementById("auth").classList.remove("hidden");
+    }
+
+    function showVault() {
+      document.getElementById("auth").classList.add("hidden");
+      document.getElementById("vault").classList.remove("hidden");
+      loadNotes();
+    }
+
+    async function loadNotes() {
+      const r = await fetch(API + "/notes", {
+        headers: { "Authorization": "Bearer " + token() },
+      });
+      if (r.status === 401) { logout(); return; }
+      const notes = await r.json();
+      const box = document.getElementById("notes");
+      if (notes.length === 0) {
+        box.innerHTML = '<div class="empty">Aucune note pour le moment.</div>';
+        return;
+      }
+      box.innerHTML = notes.map(n =>
+        '<div class="note"><div><p>' + escapeHtml(n.content) +
+        '</p><small>' + new Date(n.created_at).toLocaleString("fr-FR") +
+        '</small></div><button class="del" onclick="delNote(' + n.id + ')">Suppr</button></div>'
+      ).join("");
+    }
+
+    async function addNote() {
+      const content = document.getElementById("noteContent").value;
+      if (!content.trim()) return;
+      await fetch(API + "/notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token(),
+        },
+        body: JSON.stringify({ content }),
+      });
+      document.getElementById("noteContent").value = "";
+      loadNotes();
+    }
+
+    async function delNote(id) {
+      await fetch(API + "/notes/" + id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token() },
+      });
+      loadNotes();
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+
+    // Au chargement : si on a deja un token, on va direct au coffre.
+    if (token()) showVault();
+  </script>
+</body>
+</html>
